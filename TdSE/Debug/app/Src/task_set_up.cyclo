@@ -1,0 +1,4 @@
+../app/Src/task_set_up.c:88:6:task_set_up_update_display	8
+../app/Src/task_set_up.c:146:6:task_set_up_init	2
+../app/Src/task_set_up.c:180:6:task_set_up_update	7
+../app/Src/task_set_up.c:227:6:task_set_up_statechart	23

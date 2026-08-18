@@ -1,0 +1,3 @@
+../app/Src/task_normal.c:37:13:task_normal_update_display	14
+../app/Src/task_normal.c:88:6:task_system_init	2
+../app/Src/task_normal.c:128:6:task_system_update	64

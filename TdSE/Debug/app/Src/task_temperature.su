@@ -1,0 +1,8 @@
+../app/Src/task_temperature.c:22:6:temperatureSensorInit	16	static
+../app/Src/task_temperature.c:59:6:temperatureSensorUpdate	40	static
+../app/Src/task_temperature.c:107:7:temperatureSensorReadCelsiusLM35	4	static
+../app/Src/task_temperature.c:112:7:temperatureSensorReadCelsiusInternal	4	static
+../app/Src/task_temperature.c:117:7:temperatureSensorReadFahrenheitLM35	8	static
+../app/Src/task_temperature.c:122:7:celsiusToFahrenheit	16	static
+../app/Src/task_temperature.c:128:14:analogReadingScaledWithTheLM35Formula	24	static
+../app/Src/task_temperature.c:136:14:calculateInternalTemperature	24	static
