@@ -1,4 +1,0 @@
-../app/Src/task_set_up.c:88:6:task_set_up_update_display	56	static,ignoring_inline_asm
-../app/Src/task_set_up.c:146:6:task_set_up_init	48	static,ignoring_inline_asm
-../app/Src/task_set_up.c:180:6:task_set_up_update	24	static,ignoring_inline_asm
-../app/Src/task_set_up.c:227:6:task_set_up_statechart	16	static

@@ -1,3 +1,0 @@
-../app/Src/task_normal.c:37:13:task_normal_update_display	80	static
-../app/Src/task_normal.c:88:6:task_system_init	32	static,ignoring_inline_asm
-../app/Src/task_normal.c:128:6:task_system_update	48	static,ignoring_inline_asm
