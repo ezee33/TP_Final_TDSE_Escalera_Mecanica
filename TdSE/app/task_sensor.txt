@@ -1,0 +1,59 @@
+task_sensor.c (task_sensor.h, task_sensor_attribute.h) 
+Non-Blocking & Update By Time Code -> Sensor Modeling
+Documentación: Módulo task_sensor.c
+
+
+/*************************** Datos previos *********************************/
+
+El módulo task_sensor.c es responsable de monitorear el estado de las entradas digitales del sistema a través de una máquina
+de estados no bloqueante para detectar cambios de condición (accionado o no accionado) y notificar los eventos a los módulos
+destino correspondientes (task_system.c o task_set_up.c).
+
+En esta implementación se administran siete entradas binarias:
+- BTN_PERSON_IN: Detecta el ingreso de personas a la escalera.
+- BTN_PERSON_OUT: Detecta el egreso de personas de la escalera.
+- BTN_SYSTEM_ACTIVATE: Solicita la activación del sistema.
+- BTN_MENU_ITERATE: Navegación de opciones en el menú.
+- BTN_MENU_ACCEPT: Confirmación de opciones en el menú.
+- SWC_IR_BARRIER: Barrera infrarroja para orden de vaciado inmediato.
+- SWC_SYSTEM_DEACTIVATE: Desactivación del sistema y paso a menú de configuración.
+
+Cada sensor se gobierna por cuatro estados: ST_SENSOR_XX_UP (no accionado) y ST_SENSOR_XX_DOWN (accionado), junto con dos
+estados de transición para filtrado de antirrebote: ST_SENSOR_XX_FALLING (flanco descendente) y ST_SENSOR_XX_RISING (flanco ascendente).
+
+
+/********************** Arquitectura del código ****************************/
+
+Estructuras Principales (definidas en task_sensor_attribute.h / task_sensor.c):
+
+- task_sensor_cfg_list: Define la configuración estática de cada sensor. Lista del tipo task_sensor_cfg_t que contiene:
+	identifier: Enumerativo que identifica de forma única al sensor.
+	gpio_port y pin: Puerto y pin del microcontrolador asignados al sensor.
+	pressed: Define el nivel lógico que indica estado activo.
+	signal_up: Evento emitido al detectar la liberación del sensor.
+	signal_down: Evento emitido al detectar la pulsación del sensor.
+
+- task_sensor_dta_list: Contiene los datos dinámicos de cada sensor, tales como el estado actual de la FSM, el evento generado
+  y el contador del temporizador empleado para filtrar el rebote mecánico.
+
+
+/************************* Variables globales *******************************/
+
+- g_task_sensor_cnt: Contador global que registra la cantidad de ejecuciones de la tarea.
+- g_task_sensor_tick_cnt: Temporizador global protegido por zonas críticas para controlar la periodicidad de escaneo.
+
+
+/****************************** Funciones ************************************/
+
+- task_sensor_init: Inicializa las estructuras de datos dinámicas y la configuración de pines de entrada.
+- task_sensor_update: Realiza el escaneo periódico no bloqueante de todos los sensores. Lee el estado lógico de los pines,
+  gestiona las transiciones de la FSM filtrando los rebotes, y encola los eventos generados llamando a put_event_task_system
+  o put_event_task_set_up según la naturaleza del evento.
+
+
+/************************** Notas importantes ********************************/
+
+- Las interrupciones se deshabilitan temporalmente durante la lectura/modificación de g_task_sensor_tick_cnt para garantizar atomicidad.
+- El tiempo de filtrado de antirrebote viene determinado por la constante DEL_SENSOR_XX_MAX.
+- Para agregar un nuevo sensor: incorporar su ID en task_sensor_id, añadir los registros correspondientes en task_sensor_cfg_list
+  y task_sensor_dta_list, y definir los nuevos eventos en el enumerativo de eventos del sistema o del menú según corresponda.

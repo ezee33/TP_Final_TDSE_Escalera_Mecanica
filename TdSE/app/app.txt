@@ -1,0 +1,42 @@
+app.c (app.h)
+Endless loops, which execute tasks with fixed computing time. This 
+sequential execution is only deviated from when an interrupt event occurs.
+
+app.c (app.h)
+
+- app_init se encarga de inicializar todos los módulos y periféricos del sistema mediante:
+  1. task_sensor_init (ver task_sensor.c)
+  2. temperatureSensorInit (ver task_temperature.c)
+  3. task_system_init (ver task_system.c)
+  4. task_set_up_init (ver task_set_up.c)
+  5. task_actuator_init (ver task_actuator.c)
+
+- app_update inicia un bucle infinito (Round-Robin Cooperativo) que ejecuta secuencialmente:
+  1. task_sensor_update (ver task_sensor.c)
+  2. temperatureSensorUpdate (ver task_temperature.c)
+  3. task_system_update (ver task_system.c)
+  4. task_set_up_update (ver task_set_up.c)
+  5. task_actuator_update (ver task_actuator.c)
+
+Todas estas funciones se registran de forma ordenada en la lista de tareas task_cfg_list, la cual es recorrida cíclicamente en el bucle principal.
+
+El orden de ejecución es crítico para el flujo de información del sistema:
+1. Muestreo de Entradas: task_sensor escanea los botones/switches y encola los eventos generados.
+2. Adquisición de Datos: task_temperature adquiere y filtra la temperatura analógica (LM35) e interna.
+3. Procesamiento Lógico: task_system y task_set_up leen sus respectivas colas de eventos, actualizan sus máquinas de estados, leen las temperaturas calculadas, comandan actuadores y actualizan el display LCD según quién posea el control de pantalla (g_is_menu_active).
+4. Aplicación de Salidas: task_actuator actualiza físicamente el estado de los LEDs y del buzzer en los pines GPIO.
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   

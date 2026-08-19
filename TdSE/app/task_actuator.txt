@@ -1,0 +1,55 @@
+task_actuator.c (task_actuator.h, task_actuator_attribute.h) 
+Non-Blocking & Update By Time Code -> Actuator Modeling
+Documentación: Módulo task_actuator.c
+
+
+/*************************** Datos previos *********************************/
+
+El módulo task_actuator.c gestiona las salidas digitales del sistema (LEDs indicadores y Buzzer) mediante máquinas de estados
+individuales por dispositivo. Permite encender, apagar o generar parpadeos (blink) con temporizaciones precisas sin utilizar
+funciones de retardo bloqueantes.
+
+Actuadores administrados en esta implementación:
+- LED_MAX_VELOCITY: Indicador de motor operando a máxima velocidad.
+- LED_MIN_VELOCITY: Indicador de motor operando a velocidad mínima.
+- LED_SYSTEM_ACTIVATED: Baliza indicadora de sistema en modo normal activo.
+- LED_SYSTEM_DEACTIVATED: Indicador de sistema desactivado / modo configuración.
+- BUZZER_ESCALATOR_STOPPED: Sirena acústica que alerta la detención de la escalera.
+
+Cada actuador transiciona entre los estados: ST_ACTUATOR_XX_OFF (apagado), ST_ACTUATOR_XX_ON (encendido continuo),
+ST_ACTUATOR_XX_BLINK_ON (fase activa del destello) y ST_ACTUATOR_XX_BLINK_OFF (fase inactiva del destello).
+
+
+/********************** Arquitectura del código ****************************/
+
+Estructuras Principales (definidas en task_actuator_attribute.h / task_actuator.c):
+
+- task_actuator_cfg_list: Estructura de configuración estática del tipo task_actuator_cfg_t:
+	identifier: Identificador del actuador.
+	gpio_port y pin: Puerto y pin asignados al periférico.
+	polarity: Define si el actuador es de lógica directa o inversa (ACTIVE_HIGH / ACTIVE_LOW).
+
+- task_actuator_dta_list: Datos dinámicos del actuador del tipo task_actuator_dta_t:
+	state: Estado actual de la FSM.
+	ticks_count: Contador de tiempo transcurrido en el estado actual.
+	ticks_blink_on / ticks_blink_off: Tiempos configurados para los intervalos de encendido/apagado en el modo blink.
+
+
+/************************* Variables globales *******************************/
+
+- g_task_actuator_cnt: Contador global de ciclos de ejecución de la tarea.
+- g_task_actuator_tick_cnt: Temporizador global protegido contra interrupciones para el control del paso del tiempo.
+
+
+/****************************** Funciones ************************************/
+
+- task_actuator_init: Configura e inicializa los estados iniciales de todos los actuadores a apagado (OFF).
+- task_actuator_update: Función periódica que evalúa el estado de cada actuador, decrementa o incrementa sus temporizadores
+  internos de parpadeo y actualiza el nivel lógico físico del pin GPIO correspondiente.
+- put_event_task_actuator: Interfaz pública que permite a otras tareas enviar comandos (EV_ACTUATOR_XX_ON, EV_ACTUATOR_XX_OFF,
+  EV_ACTUATOR_XX_BLINK) dirigidos a un actuador específico.
+
+
+/************************** Notas importantes ********************************/
+
+- Permite controlar múltiples LEDs y Buzzers de forma simultánea con cadencias de titilado totalmente independientes.

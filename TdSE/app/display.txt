@@ -1,0 +1,41 @@
+display.c (display.h) 
+Low-Level Hardware Driver -> HD44780 LCD Controller
+Documentación: Módulo display.c
+
+
+/*************************** Datos previos *********************************/
+
+El módulo display.c implementa el controlador de bajo nivel para pantallas de cristal líquido (LCD) basadas en el circuito
+integrado Hitachi HD44780 o compatible. Implementa comunicación por bus de 4 bits de datos para optimizar el uso de pines GPIO.
+
+Pines de control e interfaz:
+- RS (Register Select): Selección entre registro de instrucción y registro de datos.
+- EN (Enable): Inicia el ciclo de lectura/escritura de datos.
+- Bus de datos: 4 líneas digitales (D4, D5, D6, D7).
+
+
+/********************** Arquitectura del código ****************************/
+
+Estructuras Principales:
+
+- display_connection_t: Estructura de configuración hardware que especifica los puertos GPIO y números de pines asignados
+  a cada línea de control (RS, EN) y a los 4 pines de datos (D4 a D7).
+
+
+/************************* Variables globales *******************************/
+
+- g_display_cfg: Instancia global que guarda la asignación física de pines de la pantalla LCD.
+
+
+/****************************** Funciones ************************************/
+
+- displayInit: Inicializa el hardware LCD ejecutando la secuencia de comandos de reset, conmutación al modo de 4 bits,
+  configuración de cursor y borrado de pantalla según los tiempos especificados por la hoja de datos.
+- displayCharPositionWrite: Establece la ubicación del cursor enviando la dirección DDRAM correspondiente a las coordenadas (x, y).
+- displayStringWrite: Escribe una cadena de caracteres terminada en nulo ('\0') a partir de la posición actual del cursor.
+- systick_delay_us: Función auxiliar para generar retardos exactos en microsegundos usando el temporizador SysTick del microcontrolador.
+
+
+/************************** Notas importantes ********************************/
+
+- Las temporizaciones internas durante el ciclo de inicialización son críticas; se utilizan retardos por SysTick para garantizar la correcta recepción de instrucciones por parte del controlador HD44780.

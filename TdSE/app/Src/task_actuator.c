@@ -1,0 +1,214 @@
+/********************** inclusions *******************************************/
+#include "app.h"
+#include "task_set_up.h"
+#include "board.h"
+#include "task_actuator_attribute.h"
+#include "task_actuator_interface.h"
+#include "logger.h"
+
+/********************** macros and definitions *******************************/
+#define G_TASK_ACT_CNT_INIT			0ul
+#define G_TASK_ACT_TICK_CNT_INI		0ul
+
+#define DEL_ACTUATOR_XX_PUL				20ul
+#define DEL_ACTUATOR_XX_BLI				500ul
+#define DEL_ACTUATOR_XX_MIN				0ul
+
+/********************** internal data declaration ****************************/
+const task_actuator_cfg_t task_actuator_cfg_list[] = {
+	{ID_LED_MAX_VELOCITY,  LED_MAX_VELOCITY_PORT,  LED_MAX_VELOCITY_PIN, LED_MAX_VELOCITY_ON,  LED_MAX_VELOCITY_OFF, DEL_ACTUATOR_XX_BLI, DEL_ACTUATOR_XX_PUL},
+	{ID_LED_MIN_VELOCITY,  LED_MIN_VELOCITY_PORT,  LED_MIN_VELOCITY_PIN, LED_MIN_VELOCITY_ON,  LED_MIN_VELOCITY_OFF, DEL_ACTUATOR_XX_BLI, DEL_ACTUATOR_XX_PUL},
+	{ID_LED_SYSTEM_ACTIVATED,  LED_SYSTEM_ACTIVATED_PORT,  LED_SYSTEM_ACTIVATED_PIN, LED_SYSTEM_ACTIVATED_ON,  LED_SYSTEM_ACTIVATED_OFF, DEL_ACTUATOR_XX_BLI, DEL_ACTUATOR_XX_PUL},
+	{ID_LED_SYSTEM_DEACTIVATED,  LED_SYSTEM_DEACTIVATED_PORT,  LED_SYSTEM_DEACTIVATED_PIN, LED_SYSTEM_DEACTIVATED_ON,  LED_SYSTEM_DEACTIVATED_OFF, DEL_ACTUATOR_XX_BLI, DEL_ACTUATOR_XX_PUL},
+	{ID_BUZZER_ESCALATOR_STOPPED,  BUZ_ESCALATOR_STOPPED_PORT,  BUZ_ESCALATOR_STOPPED_PIN, BUZ_ESCALATOR_STOPPED_ON,  BUZ_ESCALATOR_STOPPED_OFF, DEL_ACTUATOR_XX_BLI, DEL_ACTUATOR_XX_PUL},
+};
+
+#define ACTUATOR_CFG_QTY	(sizeof(task_actuator_cfg_list)/sizeof(task_actuator_cfg_t))
+
+task_actuator_dta_t task_actuator_dta_list[] = {
+	{DEL_ACTUATOR_XX_MIN, ST_ACTUATOR_XX_OFF, EV_ACTUATOR_XX_OFF, false},
+	{DEL_ACTUATOR_XX_MIN, ST_ACTUATOR_XX_OFF, EV_ACTUATOR_XX_OFF, false},
+	{DEL_ACTUATOR_XX_MIN, ST_ACTUATOR_XX_OFF, EV_ACTUATOR_XX_OFF, false},
+	{DEL_ACTUATOR_XX_MIN, ST_ACTUATOR_XX_OFF, EV_ACTUATOR_XX_ON, true},
+	{DEL_ACTUATOR_XX_MIN, ST_ACTUATOR_XX_OFF, EV_ACTUATOR_XX_OFF, false}
+};
+
+#define ACTUATOR_DTA_QTY	(sizeof(task_actuator_dta_list)/sizeof(task_actuator_dta_t))
+
+/********************** internal data definition *****************************/
+const char *p_task_actuator 		= "Task Actuator (Actuator Statechart)";
+const char *p_task_actuator_ 		= "Non-Blocking & Update By Time Code";
+
+/********************** external data declaration ****************************/
+uint32_t g_task_actuator_cnt;
+volatile uint32_t g_task_actuator_tick_cnt;
+
+/********************** external functions definition ************************/
+void task_actuator_init(void *parameters){
+	uint32_t index;
+	const task_actuator_cfg_t *p_task_actuator_cfg;
+	task_actuator_dta_t *p_task_actuator_dta;
+	task_actuator_st_t state;
+	task_actuator_ev_t event;
+	bool b_event;
+
+	//LOGGER_LOG("  %s is running - %s\r\n", GET_NAME(task_actuator_init), p_task_actuator);
+	//LOGGER_LOG("  %s is a %s\r\n", GET_NAME(task_actuator), p_task_actuator_);
+
+	g_task_actuator_cnt = G_TASK_ACT_CNT_INIT;
+
+	//LOGGER_LOG("   %s = %lu\r\n", GET_NAME(g_task_actuator_cnt), g_task_actuator_cnt);
+
+	for (index = 0; ACTUATOR_DTA_QTY > index; index++){
+		p_task_actuator_cfg = &task_actuator_cfg_list[index];
+		p_task_actuator_dta = &task_actuator_dta_list[index];
+
+		//LOGGER_LOG("   %s = %lu", GET_NAME(index), index);
+
+		state = p_task_actuator_dta->state;
+		//LOGGER_LOG("   %s = %lu", GET_NAME(state), (uint32_t)state);
+
+		event = p_task_actuator_dta->event;
+		//LOGGER_LOG("   %s = %lu", GET_NAME(event), (uint32_t)event);
+
+		b_event = p_task_actuator_dta->flag;
+		//LOGGER_LOG("   %s = %s\r\n", GET_NAME(b_event), (b_event ? "true" : "false"));
+
+		HAL_GPIO_WritePin(p_task_actuator_cfg->gpio_port, p_task_actuator_cfg->pin, p_task_actuator_cfg->actuator_off);
+	}
+
+	g_task_actuator_tick_cnt = G_TASK_ACT_TICK_CNT_INI;
+}
+
+void task_actuator_update(void *parameters){
+	uint32_t index;
+	const task_actuator_cfg_t *p_task_actuator_cfg;
+	task_actuator_dta_t *p_task_actuator_dta;
+	bool b_time_update_required = false;
+
+	g_task_actuator_cnt++;
+
+	__asm("CPSID i");	/* disable interrupts*/
+    if (G_TASK_ACT_TICK_CNT_INI < g_task_actuator_tick_cnt){
+    	g_task_actuator_tick_cnt--;
+    	b_time_update_required = true;
+    }
+    __asm("CPSIE i");	/* enable interrupts*/
+
+    while (b_time_update_required){
+		/* Protect shared resource (g_task_actuator_tick_cnt) */
+		__asm("CPSID i");	/* disable interrupts*/
+		if (G_TASK_ACT_TICK_CNT_INI < g_task_actuator_tick_cnt){
+			g_task_actuator_tick_cnt--;
+			b_time_update_required = true;
+		}
+		else{
+			b_time_update_required = false;
+		}
+		__asm("CPSIE i");	/* enable interrupts*/
+
+    	for (index = 0; ACTUATOR_DTA_QTY > index; index++){
+    		/* Update Task Actuator Configuration & Data Pointer */
+			p_task_actuator_cfg = &task_actuator_cfg_list[index];
+			p_task_actuator_dta = &task_actuator_dta_list[index];
+
+			switch (p_task_actuator_dta->state){
+				case ST_ACTUATOR_XX_OFF:
+
+					if ((p_task_actuator_dta->flag == true) && (p_task_actuator_dta->event == EV_ACTUATOR_XX_ON)){
+						p_task_actuator_dta->flag = false;
+						HAL_GPIO_WritePin(p_task_actuator_cfg->gpio_port, p_task_actuator_cfg->pin, p_task_actuator_cfg->actuator_on);
+						p_task_actuator_dta->state = ST_ACTUATOR_XX_ON;
+					}
+
+					else if ((p_task_actuator_dta->flag == true) && (p_task_actuator_dta->event == EV_ACTUATOR_XX_BLINK)){
+						p_task_actuator_dta->flag = false;
+						HAL_GPIO_WritePin(p_task_actuator_cfg->gpio_port, p_task_actuator_cfg->pin, p_task_actuator_cfg->actuator_on);
+						p_task_actuator_dta->state = ST_ACTUATOR_XX_BLINK_ON;
+						p_task_actuator_dta->tick = DEL_ACTUATOR_XX_BLI;
+					}
+					break;
+
+				case ST_ACTUATOR_XX_ON:
+
+					if ((p_task_actuator_dta->flag == true) && (p_task_actuator_dta->event == EV_ACTUATOR_XX_OFF)){
+						p_task_actuator_dta->flag = false;
+						HAL_GPIO_WritePin(p_task_actuator_cfg->gpio_port, p_task_actuator_cfg->pin, p_task_actuator_cfg->actuator_off);
+						p_task_actuator_dta->state = ST_ACTUATOR_XX_OFF;
+					}
+
+					break;
+
+				case ST_ACTUATOR_XX_BLINK_ON:
+					if (p_task_actuator_dta->tick > 0){
+						p_task_actuator_dta->state = ST_ACTUATOR_XX_BLINK_ON;
+						p_task_actuator_dta->tick--;
+					}
+					else if (p_task_actuator_dta->tick == 0){
+						p_task_actuator_dta->state = ST_ACTUATOR_XX_BLINK_OFF;
+						HAL_GPIO_WritePin(p_task_actuator_cfg->gpio_port, p_task_actuator_cfg->pin, p_task_actuator_cfg->actuator_off);
+						p_task_actuator_dta->tick = DEL_ACTUATOR_XX_BLI;
+					}
+					if ((p_task_actuator_dta->flag == true) && (p_task_actuator_dta->event == EV_ACTUATOR_XX_NOT_BLINK)){
+						p_task_actuator_dta->flag = false;
+						p_task_actuator_dta->state = ST_ACTUATOR_XX_OFF;
+						HAL_GPIO_WritePin(p_task_actuator_cfg->gpio_port, p_task_actuator_cfg->pin, p_task_actuator_cfg->actuator_off);
+					}
+
+					else if ((p_task_actuator_dta->flag == true) && (p_task_actuator_dta->event == EV_ACTUATOR_XX_OFF)){
+						p_task_actuator_dta->flag = false;
+						p_task_actuator_dta->state = ST_ACTUATOR_XX_OFF;
+						HAL_GPIO_WritePin(p_task_actuator_cfg->gpio_port, p_task_actuator_cfg->pin, p_task_actuator_cfg->actuator_off);
+					}
+					else if ((p_task_actuator_dta->flag == true) && (p_task_actuator_dta->event == EV_ACTUATOR_XX_ON)){
+						p_task_actuator_dta->flag = false;
+						p_task_actuator_dta->state = ST_ACTUATOR_XX_ON;
+						HAL_GPIO_WritePin(p_task_actuator_cfg->gpio_port, p_task_actuator_cfg->pin, p_task_actuator_cfg->actuator_on);
+					}
+
+					break;
+
+				case ST_ACTUATOR_XX_BLINK_OFF:
+
+					if (p_task_actuator_dta->tick > 0){
+						p_task_actuator_dta->state = ST_ACTUATOR_XX_BLINK_OFF;
+						p_task_actuator_dta->tick--;
+					}
+					else if (p_task_actuator_dta->tick == 0){
+						p_task_actuator_dta->state = ST_ACTUATOR_XX_BLINK_ON;
+						HAL_GPIO_WritePin(p_task_actuator_cfg->gpio_port, p_task_actuator_cfg->pin, p_task_actuator_cfg->actuator_on);
+						p_task_actuator_dta->tick = DEL_ACTUATOR_XX_BLI;
+					}
+
+					if ((p_task_actuator_dta->flag == true) && (p_task_actuator_dta->event == EV_ACTUATOR_XX_NOT_BLINK)){
+						p_task_actuator_dta->flag = false;
+						p_task_actuator_dta->state = ST_ACTUATOR_XX_OFF;
+						HAL_GPIO_WritePin(p_task_actuator_cfg->gpio_port, p_task_actuator_cfg->pin, p_task_actuator_cfg->actuator_off);
+
+					}
+					else if ((p_task_actuator_dta->flag == true) && (p_task_actuator_dta->event == EV_ACTUATOR_XX_OFF)){
+						p_task_actuator_dta->flag = false;
+						p_task_actuator_dta->state = ST_ACTUATOR_XX_OFF;
+						HAL_GPIO_WritePin(p_task_actuator_cfg->gpio_port, p_task_actuator_cfg->pin, p_task_actuator_cfg->actuator_off);
+					}
+
+					else if ((p_task_actuator_dta->flag == true) && (p_task_actuator_dta->event == EV_ACTUATOR_XX_ON)){
+						p_task_actuator_dta->flag = false;
+						p_task_actuator_dta->state = ST_ACTUATOR_XX_ON;
+						HAL_GPIO_WritePin(p_task_actuator_cfg->gpio_port, p_task_actuator_cfg->pin, p_task_actuator_cfg->actuator_on);
+					}
+					break;
+
+				default:
+					p_task_actuator_dta->tick = DEL_ACTUATOR_XX_MIN;
+					p_task_actuator_dta->state = ST_ACTUATOR_XX_OFF;
+					p_task_actuator_dta->event = EV_ACTUATOR_XX_OFF;
+					p_task_actuator_dta->flag = false;
+
+					break;
+			}
+		}
+    }
+}
+
+/********************** end of file ******************************************/

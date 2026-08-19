@@ -1,0 +1,46 @@
+task_set_up.c (task_set_up.h, task_set_up_attribute.h) 
+Event-Driven Menu System -> User Interface
+Documentación: Módulo task_set_up.c
+
+
+/*************************** Datos previos *********************************/
+
+El módulo task_set_up.c gestiona el menú interactivo de configuración accesible por el usuario cuando el sistema se encuentra
+desactivado. Permite visualizar y modificar parámetros del sistema en tiempo real utilizando los botones de iteración y aceptación.
+
+Parámetros configurables:
+- Tiempo de espera hasta detener la escalera (ticks hasta ST_OP_STOP: 2000 ms a 6000 ms).
+- Presincronización / ajuste manual de la cantidad de pasajeros (0 a 10 personas).
+
+Estados de navegación (task_set_up_st_t):
+- ST_MEN_ASLEEP: Menú inactivo. Cede el control de la pantalla a task_system.c.
+- ST_MEN_ROOT: Raíz del menú principal (Opciones: Ajustar Ticks, Ajustar Personas, Salir).
+- ST_MEN_MODIFY_PARAM_TICK: Submenú para selección del tiempo de espera.
+- ST_MEN_MODIFY_PARAM_PASSENGER_AMOUNT: Submenú para presincronizar la cantidad de personas.
+
+
+/********************** Arquitectura del código ****************************/
+
+Estructuras y Colas Principales:
+
+- queue_task_a_normal: Cola circular receptora de eventos generados por los botones de navegación (BTN_MENU_ITERATE y BTN_MENU_ACCEPT).
+- menu_context: Almacena la opción del menú seleccionada actualmente y el valor temporal del parámetro en modificación.
+
+
+/************************* Variables globales *******************************/
+
+- g_task_set_up_cnt: Contador de ejecuciones de la tarea.
+- g_task_set_up_tick_cnt: Temporizador protegido para temporización interna del menú.
+- g_is_menu_active: Bandera global que el menú conmuta a true al despertar (ST_MEN_ROOT) y a false al salir (ST_MEN_ASLEEP).
+
+
+/****************************** Funciones ************************************/
+
+- task_set_up_init: Inicializa la cola de eventos y asigna los estados por defecto del menú.
+- task_set_up_update: Desencola eventos de navegación, procesa la máquina de estados del menú y dibuja las opciones en la pantalla LCD.
+- put_event_task_set_up: Función de interfaz para recibir eventos enviados desde task_sensor.c.
+
+
+/************************** Notas importantes ********************************/
+
+- Al entrar al menú, g_is_menu_active se coloca en true para bloquear la escritura del LCD por parte de task_system.c.

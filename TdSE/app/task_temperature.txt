@@ -1,0 +1,48 @@
+task_temperature.c (task_temperature.h, task_temperature_attribute.h) 
+Periodic Data Acquisition & Signal Conditioning -> ADC Driver
+Documentación: Módulo task_temperature.c
+
+
+/*************************** Datos previos *********************************/
+
+El módulo task_temperature.c administra la conversión analógica-digital (periférico ADC1) para adquirir, filtrar y calcular
+las lecturas térmicas del sistema:
+1. Sensor analógico externo LM35 (conectado al canal ADC4 / PA4).
+2. Sensor de temperatura interno del microcontrolador STM32F103 (canal interno ADC_CHANNEL_TEMPSENSOR).
+
+
+/********************** Arquitectura del código ****************************/
+
+Estructuras y Algoritmos:
+
+- lm35_buffer: Arreglo circular para implementar un promedio móvil de 10 muestras (LM35_NUMBER_OF_AVG_SAMPLES), mitigando el
+  ruido de alta frecuencia en la señal analógica.
+- task_temperature_dta: Estructura que almacena los valores procesados en grados Celsius y Fahrenheit para ambos sensores.
+
+Ecuaciones aplicadas:
+- Conversión LM35:
+  V_out = (Muestra_ADC / 4095.0) * 3.3V
+  Temp_Celsius_LM35 = V_out / 0.010V/°C
+
+- Conversión Sensor Interno STM32:
+  $$T (^\circ\text{C}) = \frac{1.43 - V_{sense}}{0.0043} + 25$$
+
+
+/************************* Variables globales *******************************/
+
+- g_task_temperature_cnt: Contador global de ejecuciones del módulo.
+- g_task_temperature_tick_cnt: Temporizador protegido para la tasa de muestreo periódico del ADC.
+
+
+/****************************** Funciones ************************************/
+
+- temperatureSensorInit: Inicializa las estructuras internas, limpia el buffer de promedios del LM35 e inicializa el canal ADC.
+- temperatureSensorUpdate: Realiza las lecturas analógicas periódicas, actualiza el promedio móvil del LM35 y calcula los valores de temperatura.
+- temperatureSensorReadCelsiusLM35: Retorna el valor actual del LM35 en grados Celsius.
+- temperatureSensorReadCelsiusInternal: Retorna la temperatura interna del microcontrolador en grados Celsius.
+- temperatureSensorReadFahrenheitLM35: Retorna la temperatura del LM35 en grados Fahrenheit.
+
+
+/************************** Notas importantes ********************************/
+
+- El canal del sensor de temperatura interno requiere un tiempo de muestreo extendido (239.5 ciclos de reloj del ADC) para garantizar una carga adecuada del capacitor de muestreo interno.

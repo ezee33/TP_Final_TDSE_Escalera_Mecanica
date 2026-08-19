@@ -1,0 +1,51 @@
+task_normal.c (task_normal.h, task_normal_attribute.h) 
+Event-Driven FSM & Main Control Loop -> System Logic
+Documentación: Módulo task_normal.c
+
+
+/*************************** Datos previos *********************************/
+
+El módulo task_normal.c es el núcleo lógico del sistema. Controla la operación Normal de la escalera mecánica procesando el
+conteo de pasajeros, la selección de la velocidad del motor, las alertas por detención y la temporización de espera en reposo.
+
+Estados de la máquina principal (task_system_st_t):
+- ST_SYS_INACTIVE: Sistema desactivado.
+- ST_OP_STOP: Escalera detenida, esperando el ingreso de pasajeros.
+- ST_OP_MIN_VELOCITY: Escalera marchando a velocidad mínima (de 1 a 5 pasajeros).
+- ST_OP_MAX_VELOCITY: Escalera marchando a velocidad máxima (más de 5 pasajeros).
+- ST_OP_STANDBY: Escalera en proceso de vaciado/espera antes de pasar al estado de detención completa.
+
+
+/********************** Arquitectura del código ****************************/
+
+Estructuras y Colas Principales:
+
+- queue_task_a: Cola circular privada encargada de recibir y desacoplar los eventos entrantes desde los sensores y otras tareas.
+- task_system_dta: Estructura de contexto operativo que almacena:
+	passenger_count: Cantidad actual de personas sobre la escalera.
+	tick_until_stop: Tiempo de espera configurado en reposo antes de detener el motor.
+	current_state: Estado operativo actual.
+
+
+/************************* Variables globales *******************************/
+
+- g_task_system_cnt: Contador global de ejecuciones de la tarea.
+- g_task_system_tick_cnt: Contador de ticks para la gestión de temporizaciones internas del sistema.
+- g_is_menu_active: Variable bandera global que indica si el menú de configuración se encuentra activo, cediendo o tomando
+  el control exclusivo del display LCD.
+
+
+/****************************** Funciones ************************************/
+
+- task_system_init: Inicializa las colas de eventos, las variables del estado operativo y la interfaz gráfica base.
+- task_system_update: Lee los eventos almacenados en queue_task_a mediante get_event_task_system, actualiza el estado operativo,
+  comanda los indicadores en task_actuator.c y refresca la información de pasajeros y temperaturas en el display LCD (si g_is_menu_active es falso).
+- init_queue_event_task_system: Inicializa la cola de eventos del sistema.
+- put_event_task_system: Encola un evento para que sea procesado por task_system_update.
+- get_event_task_system / any_event_task_system: Funciones auxiliares de desacople para la extracción y verificación de eventos en cola.
+
+
+/************************** Notas importantes ********************************/
+
+- El umbral de conmutación entre velocidad mínima y máxima está fijado en 5 pasajeros.
+- Cuando g_is_menu_active == true, este módulo suspende las actualizaciones en el display LCD para evitar superposición de datos con el menú.
