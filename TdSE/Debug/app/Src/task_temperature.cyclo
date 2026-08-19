@@ -1,0 +1,8 @@
+../app/Src/task_temperature.c:22:6:temperatureSensorInit	2
+../app/Src/task_temperature.c:29:6:temperatureSensorUpdate	5
+../app/Src/task_temperature.c:72:7:temperatureSensorReadCelsiusLM35	1
+../app/Src/task_temperature.c:76:7:temperatureSensorReadCelsiusInternal	1
+../app/Src/task_temperature.c:80:7:temperatureSensorReadFahrenheitLM35	1
+../app/Src/task_temperature.c:84:7:celsiusToFahrenheit	1
+../app/Src/task_temperature.c:88:14:analogReadingScaledWithTheLM35Formula	1
+../app/Src/task_temperature.c:95:14:calculateInternalTemperature	1

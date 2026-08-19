@@ -1,0 +1,4 @@
+../app/Src/task_set_up_interface.c:22:6:init_queue_event_task_set_up	16	static
+../app/Src/task_set_up_interface.c:33:6:put_event_task_set_up	16	static
+../app/Src/task_set_up_interface.c:41:18:get_event_task_set_up	16	static
+../app/Src/task_set_up_interface.c:54:6:any_event_task_set_up	4	static

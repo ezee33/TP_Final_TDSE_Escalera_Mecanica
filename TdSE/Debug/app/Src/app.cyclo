@@ -1,0 +1,3 @@
+../app/Src/app.c:54:6:app_init	2
+../app/Src/app.c:77:6:app_update	4
+../app/Src/app.c:107:6:HAL_SYSTICK_Callback	1
